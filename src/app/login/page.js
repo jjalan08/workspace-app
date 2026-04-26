@@ -10,10 +10,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    alert("Button Clicked"); // 🔥 TEST
+  const handleLogin = async () => {
+    alert("CLICK WORKING"); // 🔥 MUST SHOW
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -24,30 +22,31 @@ export default function Login() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Login</h1>
+    <div>
+      <h1>Login Page</h1>
 
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
 
-        <br /><br />
+      <br /><br />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-        <br /><br />
+      <br /><br />
 
-        <button type="submit">Login</button>
-      </form>
+      {/* 🔥 DIRECT BUTTON CLICK */}
+      <button onClick={handleLogin}>
+        CLICK ME
+      </button>
     </div>
   );
 }
