@@ -22,7 +22,7 @@ import {
 
 export default function Dashboard() {
   const [task, setTask] = useState("");
-  const [notes, setNotes] = useState(""); // NEW
+  const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("low");
   const [filter, setFilter] = useState("all");
@@ -32,7 +32,14 @@ export default function Dashboard() {
 
   const router = useRouter();
 
-  // AUTH
+  // 🔔 REQUEST NOTIFICATION PERMISSION
+  useEffect(() => {
+    if (typeof window !== "undefined" && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // 🔐 AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -41,7 +48,7 @@ export default function Dashboard() {
     return () => unsub();
   }, []);
 
-  // FETCH TASKS
+  // 🔥 FETCH TASKS
   useEffect(() => {
     if (!user) return;
 
@@ -61,7 +68,33 @@ export default function Dashboard() {
     return () => unsub();
   }, [user]);
 
-  // ADD TASK
+  // 🔔 DEADLINE REMINDER SYSTEM
+  useEffect(() => {
+    if (!tasks.length) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+
+      tasks.forEach((t) => {
+        if (!t.dueDate || t.completed) return;
+
+        const due = new Date(t.dueDate);
+        const diff = (due - now) / (1000 * 60); // minutes
+
+        if (diff > 0 && diff < 60) {
+          if (Notification.permission === "granted") {
+            new Notification("⏰ Deadline Reminder", {
+              body: `${t.text} is due soon!`,
+            });
+          }
+        }
+      });
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [tasks]);
+
+  // ➕ ADD TASK
   const addTask = async () => {
     if (!task.trim() || !user) return;
 
@@ -75,25 +108,32 @@ export default function Dashboard() {
       createdAt: new Date(),
     });
 
+    // 🔔 TASK CREATED NOTIFICATION
+    if (Notification.permission === "granted") {
+      new Notification("Task Created", {
+        body: `${task} added successfully`,
+      });
+    }
+
     setTask("");
     setNotes("");
     setDueDate("");
     setPriority("low");
   };
 
-  // DELETE
+  // ❌ DELETE
   const deleteTask = async (id) => {
     await deleteDoc(doc(db, "tasks", id));
   };
 
-  // TOGGLE
+  // ✅ TOGGLE
   const toggleComplete = async (t) => {
     await updateDoc(doc(db, "tasks", t.id), {
       completed: !t.completed,
     });
   };
 
-  // LOGOUT
+  // 🚪 LOGOUT
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
