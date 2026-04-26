@@ -15,8 +15,9 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
 
   const bottomRef = useRef(null);
+  const user = auth.currentUser;
 
-  // 🔥 REAL-TIME FETCH
+  // FETCH
   useEffect(() => {
     const q = query(
       collection(db, "messages"),
@@ -31,49 +32,67 @@ export default function Chat() {
     return () => unsub();
   }, []);
 
-  // ➕ SEND MESSAGE
+  // SEND
   const sendMessage = async () => {
     if (!message.trim()) return;
 
     await addDoc(collection(db, "messages"), {
       text: message,
-      user: auth.currentUser?.email,
+      user: user?.email,
       createdAt: new Date(),
     });
 
     setMessage("");
   };
 
-  // 🔽 AUTO SCROLL
+  // AUTO SCROLL
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
-    <div className="h-screen flex flex-col p-4 bg-gray-100">
+    <div className="h-screen flex flex-col bg-gray-100">
 
-      <h1 className="text-xl font-bold mb-2">Chat</h1>
+      {/* HEADER */}
+      <div className="p-4 bg-white shadow font-semibold">
+        Chat
+      </div>
 
       {/* MESSAGES */}
-      <div className="flex-1 overflow-y-auto bg-white p-3 rounded shadow">
-        {messages.map((m, i) => (
-          <div key={i} className="mb-2">
-            <p className="text-sm text-gray-500">{m.user}</p>
-            <div className="bg-blue-100 p-2 rounded inline-block">
-              {m.text}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        {messages.map((m, i) => {
+          const isMe = m.user === user?.email;
+
+          return (
+            <div
+              key={i}
+              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-xs p-2 rounded-lg ${
+                  isMe
+                    ? "bg-blue-500 text-white"
+                    : "bg-white border"
+                }`}
+              >
+                <p className="text-sm">{m.text}</p>
+                <p className="text-[10px] opacity-70 mt-1">
+                  {m.user}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 
       {/* INPUT */}
-      <div className="flex gap-2 mt-3">
+      <div className="p-3 bg-white flex gap-2">
         <input
           className="flex-1 border p-2 rounded"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type message..."
+          placeholder="Type a message..."
         />
 
         <button
