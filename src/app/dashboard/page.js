@@ -31,11 +31,16 @@ export default function Dashboard() {
   const router = useRouter();
   const auth = getAuth();
 
+  // 🔐 AUTH LISTENER
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, setUser);
-    return () => unsub();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
   }, []);
 
+  // 🔥 FETCH TASKS
   useEffect(() => {
     if (!user) return;
 
@@ -44,19 +49,20 @@ export default function Dashboard() {
       where("userId", "==", user.uid)
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map((doc) => ({
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setTasks(data);
     });
 
-    return () => unsub();
+    return () => unsubscribe();
   }, [user]);
 
+  // ➕ ADD TASK
   const addTask = async () => {
-    if (!task.trim()) return;
+    if (!task.trim() || !user) return;
 
     await addDoc(collection(db, "tasks"), {
       text: task,
@@ -72,26 +78,34 @@ export default function Dashboard() {
     setPriority("low");
   };
 
+  // ❌ DELETE TASK
   const deleteTask = async (id) => {
     await deleteDoc(doc(db, "tasks", id));
   };
 
+  // ✅ TOGGLE COMPLETE
   const toggleComplete = async (t) => {
     await updateDoc(doc(db, "tasks", t.id), {
       completed: !t.completed,
     });
   };
 
+  // 🚪 LOGOUT
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
   };
 
+  // ⏳ LOADING STATE (IMPORTANT FIX)
   if (!user) {
-    router.push("/login");
-    return null;
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
+  // 🔍 FILTER
   const filteredTasks = tasks.filter((t) => {
     if (filter === "completed") return t.completed;
     if (filter === "pending") return !t.completed;
@@ -99,13 +113,13 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="p-10">
-      <h1 className="text-3xl mb-4">Task Dashboard</h1>
+    <div style={{ padding: "20px" }}>
+      <h1>Task Dashboard</h1>
 
       <button onClick={logout}>Logout</button>
 
       {/* INPUT */}
-      <div className="flex gap-2 my-4">
+      <div style={{ marginTop: "20px" }}>
         <input
           placeholder="Task"
           value={task}
@@ -131,26 +145,28 @@ export default function Dashboard() {
       </div>
 
       {/* FILTER */}
-      <div className="mb-4">
+      <div style={{ marginTop: "20px" }}>
         <button onClick={() => setFilter("all")}>All</button>
         <button onClick={() => setFilter("completed")}>Completed</button>
         <button onClick={() => setFilter("pending")}>Pending</button>
       </div>
 
       {/* LIST */}
-      {filteredTasks.map((t) => (
-        <div key={t.id} className="flex gap-4 border p-2 my-2">
-          <span className={t.completed ? "line-through" : ""}>
-            {t.text}
-          </span>
+      <div style={{ marginTop: "20px" }}>
+        {filteredTasks.map((t) => (
+          <div key={t.id} style={{ border: "1px solid #ccc", margin: "5px", padding: "5px" }}>
+            <span style={{ textDecoration: t.completed ? "line-through" : "none" }}>
+              {t.text}
+            </span>
 
-          <span>{t.dueDate}</span>
-          <span>{t.priority}</span>
+            <span> | {t.dueDate}</span>
+            <span> | {t.priority}</span>
 
-          <button onClick={() => toggleComplete(t)}>✓</button>
-          <button onClick={() => deleteTask(t.id)}>X</button>
-        </div>
-      ))}
+            <button onClick={() => toggleComplete(t)}>✓</button>
+            <button onClick={() => deleteTask(t.id)}>Delete</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

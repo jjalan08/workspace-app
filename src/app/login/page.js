@@ -2,17 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const auth = getAuth();
 
-  const handleLogin = () => {
-    alert("Login clicked");
-
-    // 👉 redirect to dashboard
-    router.push("/dashboard");
+  const handleLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/dashboard");
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   return (
@@ -38,7 +42,7 @@ export default function Login() {
       <br /><br />
 
       <button onClick={handleLogin}>
-        CLICK ME
+        LOGIN
       </button>
     </div>
   );
