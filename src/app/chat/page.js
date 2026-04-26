@@ -10,12 +10,22 @@ import {
   orderBy,
 } from "firebase/firestore";
 
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+
 export default function Chat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [file, setFile] = useState(null);
 
   const bottomRef = useRef(null);
   const user = auth.currentUser;
+
+  const storage = getStorage();
 
   // FETCH
   useEffect(() => {
@@ -32,17 +42,28 @@ export default function Chat() {
     return () => unsub();
   }, []);
 
-  // SEND
+  // SEND MESSAGE
   const sendMessage = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() && !file) return;
+
+    let fileUrl = "";
+
+    // 📎 FILE UPLOAD
+    if (file) {
+      const storageRef = ref(storage, `files/${file.name}`);
+      await uploadBytes(storageRef, file);
+      fileUrl = await getDownloadURL(storageRef);
+    }
 
     await addDoc(collection(db, "messages"), {
       text: message,
       user: user?.email,
+      fileUrl,
       createdAt: new Date(),
     });
 
     setMessage("");
+    setFile(null);
   };
 
   // AUTO SCROLL
@@ -76,8 +97,23 @@ export default function Chat() {
                 }`}
               >
                 <p className="text-sm">{m.text}</p>
+
+                {m.fileUrl && (
+                  <a
+                    href={m.fileUrl}
+                    target="_blank"
+                    className="text-xs underline"
+                  >
+                    📎 File
+                  </a>
+                )}
+
                 <p className="text-[10px] opacity-70 mt-1">
                   {m.user}
+                </p>
+
+                <p className="text-[10px] opacity-50">
+                  {new Date(m.createdAt?.seconds * 1000).toLocaleTimeString()}
                 </p>
               </div>
             </div>
@@ -87,12 +123,22 @@ export default function Chat() {
       </div>
 
       {/* INPUT */}
-      <div className="p-3 bg-white flex gap-2">
+      <div className="p-3 bg-white flex gap-2 items-center">
+
+        {/* Emoji quick add */}
+        <button onClick={() => setMessage(message + "🙂")}>🙂</button>
+        <button onClick={() => setMessage(message + "🔥")}>🔥</button>
+
         <input
           className="flex-1 border p-2 rounded"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message..."
+        />
+
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files[0])}
         />
 
         <button
