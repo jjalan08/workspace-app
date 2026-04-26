@@ -1,5 +1,6 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCs3IOVklCu4OzETkeLuihIY1f6BApYMOo",
@@ -10,9 +11,9 @@ const firebaseConfig = {
   appId: "1:1086351164327:web:d35ffc3032a379aed16c82"
 };
 
-const app = initializeApp(firebaseConfig);
+// 🔥 prevent re-initialization crash (VERY IMPORTANT for Vercel)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-// 👇 NEW LINE (important)
+// ✅ EXPORT BOTH
 export const db = getFirestore(app);
-
-export default app;
+export const auth = getAuth(app);

@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase"; // ✅ IMPORTANT
+
 import {
   collection,
   addDoc,
@@ -13,8 +14,8 @@ import {
   where,
   updateDoc,
 } from "firebase/firestore";
+
 import {
-  getAuth,
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
@@ -26,31 +27,27 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("all");
 
   const [tasks, setTasks] = useState([]);
-  const [user, setUser] = useState(undefined); // IMPORTANT
+  const [user, setUser] = useState(null);
 
   const router = useRouter();
-  const auth = getAuth();
 
   // 🔐 AUTH LISTENER
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+
+      // 👉 redirect if not logged in
+      if (!currentUser) {
+        router.push("/login");
+      }
     });
 
     return () => unsubscribe();
-  }, []);
-
-  // 🔥 REDIRECT LOGIC (IMPORTANT FIX)
-  useEffect(() => {
-    if (user === undefined) return; // still checking
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user]);
+  }, [router]);
 
   // 🔥 FETCH TASKS
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user) return;
 
     const q = query(
       collection(db, "tasks"),
@@ -70,7 +67,7 @@ export default function Dashboard() {
 
   // ➕ ADD TASK
   const addTask = async () => {
-    if (!task.trim() || !user?.uid) return;
+    if (!task.trim() || !user) return;
 
     await addDoc(collection(db, "tasks"), {
       text: task,
@@ -105,8 +102,12 @@ export default function Dashboard() {
   };
 
   // ⏳ LOADING STATE
-  if (user === undefined) {
-    return <div>Loading...</div>;
+  if (!user) {
+    return (
+      <div style={{ padding: "20px" }}>
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   // 🔍 FILTER
@@ -158,7 +159,14 @@ export default function Dashboard() {
       {/* LIST */}
       <div style={{ marginTop: "20px" }}>
         {filteredTasks.map((t) => (
-          <div key={t.id} style={{ border: "1px solid #ccc", margin: "5px", padding: "5px" }}>
+          <div
+            key={t.id}
+            style={{
+              border: "1px solid #ccc",
+              margin: "5px",
+              padding: "5px",
+            }}
+          >
             <span style={{ textDecoration: t.completed ? "line-through" : "none" }}>
               {t.text}
             </span>
