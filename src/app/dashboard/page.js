@@ -79,7 +79,7 @@ export default function Dashboard() {
         if (!t.dueDate || t.completed) return;
 
         const due = new Date(t.dueDate);
-        const diff = (due - now) / (1000 * 60); // minutes
+        const diff = (due - now) / (1000 * 60);
 
         if (diff > 0 && diff < 60) {
           if (Notification.permission === "granted") {
@@ -153,14 +153,25 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow">
 
+        {/* HEADER */}
         <div className="flex justify-between mb-4">
           <h1 className="text-2xl font-bold">Task Dashboard</h1>
-          <button
-            onClick={logout}
-            className="bg-red-500 text-white px-3 py-1 rounded"
-          >
-            Logout
-          </button>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push("/chat")}
+              className="bg-green-500 text-white px-3 py-1 rounded"
+            >
+              Chat
+            </button>
+
+            <button
+              onClick={logout}
+              className="bg-red-500 text-white px-3 py-1 rounded"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* INPUT */}
