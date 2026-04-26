@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { db, auth } from "@/lib/firebase"; // ✅ IMPORTANT
+import { db, auth } from "@/lib/firebase";
 
 import {
   collection,
@@ -22,6 +22,7 @@ import {
 
 export default function Dashboard() {
   const [task, setTask] = useState("");
+  const [notes, setNotes] = useState(""); // NEW
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("low");
   const [filter, setFilter] = useState("all");
@@ -31,21 +32,16 @@ export default function Dashboard() {
 
   const router = useRouter();
 
-  // 🔐 AUTH LISTENER
+  // AUTH
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-
-      // 👉 redirect if not logged in
-      if (!currentUser) {
-        router.push("/login");
-      }
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (!u) router.push("/login");
     });
+    return () => unsub();
+  }, []);
 
-    return () => unsubscribe();
-  }, [router]);
-
-  // 🔥 FETCH TASKS
+  // FETCH TASKS
   useEffect(() => {
     if (!user) return;
 
@@ -54,23 +50,24 @@ export default function Dashboard() {
       where("userId", "==", user.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setTasks(data);
     });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [user]);
 
-  // ➕ ADD TASK
+  // ADD TASK
   const addTask = async () => {
     if (!task.trim() || !user) return;
 
     await addDoc(collection(db, "tasks"), {
       text: task,
+      notes,
       dueDate,
       priority,
       completed: false,
@@ -79,38 +76,33 @@ export default function Dashboard() {
     });
 
     setTask("");
+    setNotes("");
     setDueDate("");
     setPriority("low");
   };
 
-  // ❌ DELETE TASK
+  // DELETE
   const deleteTask = async (id) => {
     await deleteDoc(doc(db, "tasks", id));
   };
 
-  // ✅ TOGGLE COMPLETE
+  // TOGGLE
   const toggleComplete = async (t) => {
     await updateDoc(doc(db, "tasks", t.id), {
       completed: !t.completed,
     });
   };
 
-  // 🚪 LOGOUT
+  // LOGOUT
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
   };
 
-  // ⏳ LOADING STATE
   if (!user) {
-    return (
-      <div style={{ padding: "20px" }}>
-        <p>Loading...</p>
-      </div>
-    );
+    return <div className="p-10">Loading...</div>;
   }
 
-  // 🔍 FILTER
   const filteredTasks = tasks.filter((t) => {
     if (filter === "completed") return t.completed;
     if (filter === "pending") return !t.completed;
@@ -118,66 +110,114 @@ export default function Dashboard() {
   });
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Task Dashboard</h1>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow">
 
-      <button onClick={logout}>Logout</button>
-
-      {/* INPUT */}
-      <div style={{ marginTop: "20px" }}>
-        <input
-          placeholder="Task"
-          value={task}
-          onChange={(e) => setTask(e.target.value)}
-        />
-
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-        />
-
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-
-        <button onClick={addTask}>Add</button>
-      </div>
-
-      {/* FILTER */}
-      <div style={{ marginTop: "20px" }}>
-        <button onClick={() => setFilter("all")}>All</button>
-        <button onClick={() => setFilter("completed")}>Completed</button>
-        <button onClick={() => setFilter("pending")}>Pending</button>
-      </div>
-
-      {/* LIST */}
-      <div style={{ marginTop: "20px" }}>
-        {filteredTasks.map((t) => (
-          <div
-            key={t.id}
-            style={{
-              border: "1px solid #ccc",
-              margin: "5px",
-              padding: "5px",
-            }}
+        <div className="flex justify-between mb-4">
+          <h1 className="text-2xl font-bold">Task Dashboard</h1>
+          <button
+            onClick={logout}
+            className="bg-red-500 text-white px-3 py-1 rounded"
           >
-            <span style={{ textDecoration: t.completed ? "line-through" : "none" }}>
-              {t.text}
-            </span>
+            Logout
+          </button>
+        </div>
 
-            <span> | {t.dueDate}</span>
-            <span> | {t.priority}</span>
+        {/* INPUT */}
+        <div className="flex flex-col gap-2 mb-4">
+          <input
+            className="border p-2 rounded"
+            placeholder="Task title"
+            value={task}
+            onChange={(e) => setTask(e.target.value)}
+          />
 
-            <button onClick={() => toggleComplete(t)}>✓</button>
-            <button onClick={() => deleteTask(t.id)}>Delete</button>
+          <textarea
+            className="border p-2 rounded"
+            placeholder="Notes (optional)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+
+          <div className="flex gap-2">
+            <input
+              type="date"
+              className="border p-2 rounded"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+
+            <select
+              className="border p-2 rounded"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+
+            <button
+              onClick={addTask}
+              className="bg-blue-500 text-white px-4 rounded"
+            >
+              Add
+            </button>
           </div>
-        ))}
+        </div>
+
+        {/* FILTER */}
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => setFilter("all")} className="border px-3 py-1 rounded">All</button>
+          <button onClick={() => setFilter("completed")} className="border px-3 py-1 rounded">Completed</button>
+          <button onClick={() => setFilter("pending")} className="border px-3 py-1 rounded">Pending</button>
+        </div>
+
+        {/* LIST */}
+        <div className="space-y-3">
+          {filteredTasks.map((t) => (
+            <div key={t.id} className="border p-3 rounded bg-gray-50">
+
+              <div className="flex justify-between">
+                <h3 className={t.completed ? "line-through font-semibold" : "font-semibold"}>
+                  {t.text}
+                </h3>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleComplete(t)}
+                    className="bg-green-500 text-white px-2 rounded"
+                  >
+                    ✓
+                  </button>
+
+                  <button
+                    onClick={() => deleteTask(t.id)}
+                    className="bg-red-500 text-white px-2 rounded"
+                  >
+                    X
+                  </button>
+                </div>
+              </div>
+
+              {t.notes && (
+                <p className="text-sm text-gray-600 mt-1">
+                  📝 {t.notes}
+                </p>
+              )}
+
+              <p className="text-xs text-gray-500 mt-1">
+                📅 {t.dueDate || "No deadline"} | ⚡ {t.priority}
+              </p>
+
+              <p className="text-xs text-gray-400">
+                Created: {t.createdAt?.toDate?.().toLocaleString?.() || "Now"}
+              </p>
+
+            </div>
+          ))}
+        </div>
+
       </div>
     </div>
   );
