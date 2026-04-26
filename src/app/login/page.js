@@ -11,6 +11,11 @@ export default function Login() {
   const auth = getAuth();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      alert("Please enter email & password");
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/dashboard");

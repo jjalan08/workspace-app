@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("all");
 
   const [tasks, setTasks] = useState([]);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined); // IMPORTANT
 
   const router = useRouter();
   const auth = getAuth();
@@ -40,9 +40,17 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
+  // 🔥 REDIRECT LOGIC (IMPORTANT FIX)
+  useEffect(() => {
+    if (user === undefined) return; // still checking
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user]);
+
   // 🔥 FETCH TASKS
   useEffect(() => {
-    if (!user) return;
+    if (!user?.uid) return;
 
     const q = query(
       collection(db, "tasks"),
@@ -62,7 +70,7 @@ export default function Dashboard() {
 
   // ➕ ADD TASK
   const addTask = async () => {
-    if (!task.trim() || !user) return;
+    if (!task.trim() || !user?.uid) return;
 
     await addDoc(collection(db, "tasks"), {
       text: task,
@@ -96,13 +104,9 @@ export default function Dashboard() {
     router.push("/login");
   };
 
-  // ⏳ LOADING STATE (IMPORTANT FIX)
-  if (!user) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
+  // ⏳ LOADING STATE
+  if (user === undefined) {
+    return <div>Loading...</div>;
   }
 
   // 🔍 FILTER
