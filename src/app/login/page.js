@@ -7,8 +7,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   const handleLogin = () => {
-    alert("Button clicked");
-    console.log("Login clicked");
+    alert("Login clicked");
   };
 
   return (
