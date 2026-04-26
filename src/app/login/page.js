@@ -1,38 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
-  const login = async () => {
-    const auth = getAuth();
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    alert("Button Clicked"); // 🔥 TEST
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = "/dashboard";
-    } catch (err) {
-      alert(err.message);
+      router.push("/dashboard");
+    } catch (error) {
+      alert(error.message);
     }
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Login</h2>
+    <div style={{ padding: "20px" }}>
+      <h1>Login</h1>
 
-      <input
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-      /><br/><br/>
+      <form onSubmit={handleLogin}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        onChange={(e) => setPassword(e.target.value)}
-      /><br/><br/>
+        <br /><br />
 
-      <button onClick={login}>Login</button>
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <br /><br />
+
+        <button type="submit">Login</button>
+      </form>
     </div>
   );
 }
